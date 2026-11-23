@@ -1,0 +1,47 @@
+name: CI/CD Pipeline - DevOps PUCRS Fase 2
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build-and-test:
+    name: Integração Contínua (CI)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do Código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Instalar Dependências
+        run: npm install
+
+      - name: Executar Testes Automatizados
+        run: npm test
+
+  docker-build-and-deploy:
+    name: Entrega Contínua (CD)
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Checkout do Código
+        uses: actions/checkout@v4
+
+      - name: Build da Imagem Docker
+        run: docker build -t projeto-devops-fase2:latest .
+
+      - name: Validar Orquestração com Docker Compose
+        run: |
+          docker compose up -d
+          sleep 3
+          curl -f http://localhost:3000 || exit 1
+          docker compose down
